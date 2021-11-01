@@ -1,0 +1,37 @@
+digraph G {
+
+  subgraph cluster_0 {
+    style=filled;
+    color=lightgrey;
+    node [style=filled,color=white];
+    "sh01a (pad)" -> "norns 1 audio"  [ label=" L" ];
+    "supercollider (bass)" -> "norns 1 audio"  [ label=" R" ];
+  "norns 1 audio" -> "norns 1 tape";
+  "norns 1 audio" -> "norns 1 tape";
+    label = "norns 1";
+  }
+
+  subgraph cluster_1 {
+    style=filled;
+    color=lightgrey;
+    node [style=filled,color=white];
+    "op-1 (lead)" -> "norns 2 audio" [ label=" L" ];
+    "strega (arp)" -> "norns 2 audio" [ label=" R" ];
+  "norns 2 audio" -> "norns 2 tape";
+  "norns 2 audio" -> "norns 2 tape";
+    label = "norns 2";
+    node [style=filled,color=white];
+  }
+    "norns 1" -> "sh01a (pad)" [ label=" usb" ];
+    "norns 1" -> "supercollider (bass)" [ label=" sc" ];
+    "norns 1" -> "strega (arp)" [ label=" crow" ];
+    "norns 1" -> "op-1 (lead)" [ label=" usb" ];
+
+"opz"->"norns 1"
+  "norns 2 audio" -> mixer;
+  "norns 2 audio" -> mixer;
+  "norns 1 audio" -> mixer;
+  "norns 1 audio" -> mixer;
+
+  mixer [shape=Msquare];
+}
