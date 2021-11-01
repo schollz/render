@@ -43,9 +43,18 @@ Engine_Render : CroneEngine {
 			Synth("renderInput",[\ch,i,\out,0,\diskout,renDiskBus[i]])
 		});
 		
+		this.addCommand("record_stop","",{ arg msg;
+			(0..1).do({arg voice;
+			if (renDiskSyn[voice]!=nil,{
+				renDiskSyn[voice].free;
+				renDiskSyn[voice].free;
+			});
+			});
+		});
+
 		this.addCommand("record_start","ss",{ arg msg;
 			(0..1).do({arg voice;
-			if (renDiskSyn[i]==nil,{
+			if (renDiskSyn[voice]==nil,{
 				var b=Buffer.alloc(context.server,65536,1);
 				var pathname=msg[i].asString;
 				("allocating buffer for to "++pathname).postln;
@@ -58,60 +67,16 @@ Engine_Render : CroneEngine {
 			});
 		});
 
-		this.addCommand("record_start","",{ arg msg;
-			},{
-				// don't record
-				// if recording, free everything
-				if (renDiskSyn.at(voice)!=nil,{
-					("stopping recording for "++voice).postln;
-					renDiskSyn.at(voice).free;
-					renDiskSyn.removeAt(voice);
-					renDiskBuf.at(voice).free;
-					renDiskBuf.removeAt(voice);
-				});
-			});
-			Synth.before(renSyn,"Render",[
-				\diskout,renDiskBus.at(voice),
-				\freq,msg[1].midicps,
-				\amp,msg[2],
-				\pan,msg[3],
-				\atk,msg[4],
-				\rel,msg[5],
-				\cAtk,msg[6],
-				\cRel,msg[7],
-				\mRatio,msg[8],
-				\cRatio,msg[9],
-				\index,msg[10],
-				\iScale,msg[11],
-				\fxsend,msg[12],
-				\eqFreq,msg[13],
-				\eqDB,msg[14],
-				\lpf,msg[15],
-				\noise,msg[16],
-				\natk,msg[17],
-				\nrel,msg[18],
-				\out,0,
-				\fx,renBus,
-			]).onFree({
-				NetAddr("127.0.0.1",10111)
-					.sendMsg("odashodasho_voice",voice++" "++msg[1],0);
-			});
-			// NodeWatcher.register(renVoices.at(fullname));
-		});
 		// </Render>
 	}
 	
 	
 	free {
 		// <Render>
-		renBus.free;
-		renSyn.free;
-		renVoices.keysValuesDo({ arg key, value; value.free; });
-		renDiskBus.keysValuesDo({ arg key, value; value.free; });
-		renDiskSyn.keysValuesDo({ arg key, value; value.free; });
-		renDiskBuf.keysValuesDo({ arg key, value; value.free; });
-		renSampleBuf.keysValuesDo({ arg key, value; value.free; });
-		renSampleSyn.keysValuesDo({ arg key, value; value.free; });
+		renDiskBus.do({ arg value,i; value.free; });
+		renDiskSyn.do({ arg value,i; value.free; });
+		renDiskBuf.do({ arg value,i; value.free; });
+		renInput.do({ arg value,i; value.free; });
 		// </Render>
 	}
 }
