@@ -18,12 +18,11 @@ Engine_Render : CroneEngine {
 	alloc {
 		
 		// <Render>
-		renDiskSyn=Array.newClear(2);
-		renDiskBuf=Array.newClear(2);
 		renInput=Array.newClear(2);
+		renDiskBus = Bus.audio(context.server,2);
 
 		SynthDef("diskout", { arg bufnum=0, inbus=0;
-			DiskOut.ar(bufnum,In.ar(inbus,1));
+			DiskOut.ar(bufnum,In.ar(inbus,2));
 		}).add;
 		
 		// initialize synth defs
@@ -35,17 +34,13 @@ Engine_Render : CroneEngine {
 			snd=MoogFF.ar(snd,lpf,gain);
 
 			Out.ar(out, Pan2.ar(snd));
-			Out.ar(diskout, snd);
+			Out.ar(diskout, Pan2.ar(snd,2*ch-1));
 		}).add;
 
-		renDiskBus = Array.new(2, {arg i;
-			Bus.audio(context.server,1);
-		});
 		context.server.sync;
-	
 
 		SynthDef("bass", {
-                        arg out,diskout,note=60,amp=0,attack=0.01,decay=0.1,sustain=0.9,release=1,
+                        arg out,diskout,ch=1,note=60,amp=0,attack=0.01,decay=0.1,sustain=0.9,release=1,
                         t_trig=1,lpf=2;
                         var snd,env;
                         env=EnvGen.ar(Env.adsr(attack,decay,sustain,release),gate:t_trig,doneAction:2);
@@ -58,12 +53,12 @@ Engine_Render : CroneEngine {
                         snd = snd*(60/note.midicps);
 			snd = snd.tanh*amp*env;                        
 			Out.ar(out, Pan2.ar(snd));
-			Out.ar(diskout, snd);
+			Out.ar(diskout, Pan2.ar(snd,2*ch-1));
                 }).add;
 
 		this.addCommand("input","i",{ arg msg;
 			var i=msg[1];
-			renInput[i]=Synth.head(nil,"renderInput",[\ch,i,\out,0,\diskout,renDiskBus[i]]);
+			renInput[i]=Synth.head(nil,"renderInput",[\ch,i,\out,0,\diskout,renDiskBus]);
 		});
 
 		this.addCommand("input_lpf","iff",{ arg msg;
@@ -75,7 +70,7 @@ Engine_Render : CroneEngine {
 
 		this.addCommand("bass","ffffffi",{arg msg;
 			if (renBass.isNil,{
-				renBass=Synth.head(nil,"bass",[\out,0,\diskout,renDiskBus[1]]);
+				renBass=Synth.head(nil,"bass",[\out,0,\diskout,renDiskBus,\amp,0]);
 			})
 			renBass.set(\t_trig,0);
 			if (msg[7]>0,{
@@ -87,30 +82,26 @@ Engine_Render : CroneEngine {
 				\sustain,msg[5],
 				\release,msg[6]);
 			});
-					
 		});
 	
 		this.addCommand("record_stop","",{ arg msg;
-			(0..1).do({arg voice;
-			if (renDiskSyn[voice]!=nil,{
-				renDiskSyn[voice].free;
-				renDiskSyn[voice].free;
-			});
+			if (renDiskSyn!=nil,{
+				renDiskSyn.free;
+				renDiskBuf.free;
 			});
 		});
 
-		this.addCommand("record_start","ss",{ arg msg;
-			(0..1).do({arg voice;
-			if (renDiskSyn[voice]==nil,{
-				var b=Buffer.alloc(context.server,65536,1);
-				var pathname=msg[i].asString;
+		this.addCommand("record_start","s",{ arg msg;
+			if (renDiskSyn==nil,{
+				var b=Buffer.alloc(context.server,65536,2);
+				var pathname=msg[1].asString;
 				("allocating buffer for to "++pathname).postln;
-				b.write(pathname.standardizePath,PathName.new(pathname.standardizePath).extension,"int16",0,0,true);
-				renDiskBuf[voice]=b;
-				renDiskSyn[voice]=Synth.tail(nil,"diskout",
-					[\bufnum,renDiskBuf[voice],\inbus,renDiskBus[voice]]				);
+				b.write(pathname.standardizePath,
+					PathName.new(pathname.standardizePath).extension,"int16",0,0,true);
+				renDiskBuf=b;
+				renDiskSyn=Synth.tail(nil,"diskout",
+					[\bufnum,renDiskBuf,\inbus,renDiskBus);
 				// initiate disk syn
-			});
 			});
 		});
 
@@ -120,9 +111,9 @@ Engine_Render : CroneEngine {
 	
 	free {
 		// <Render>
-		renDiskBus.do({ arg value,i; value.free; });
-		renDiskSyn.do({ arg value,i; value.free; });
-		renDiskBuf.do({ arg value,i; value.free; });
+		renDiskBus.free;
+		renDiskSyn.free;
+		renDiskBuf.free;
 		renInput.do({ arg value,i; value.free; });
 		// </Render>
 	}
