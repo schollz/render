@@ -2,9 +2,12 @@
 
 include("render/lib/render")
 
+engine.name="Render"
 debounce_crow=0
 
 function init()
+  engine.input(0)
+
   setup_params()
   connect_midi()
 

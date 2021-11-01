@@ -2,6 +2,8 @@
 
 
 function setup_params()
+  -- do not monitor
+  audio.level_monitor(0)
   for i=1,2 do
     params:add_separator("input "..i)
     params:add_control(i.."input_lpf","lpf",controlspec.new(20,20000,'exp',0,20000,'Hz'))
