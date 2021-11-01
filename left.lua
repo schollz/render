@@ -1,7 +1,10 @@
 -- render
 
-
 function init()
+  connect_midi()
+end
+
+function connect_midi()
   md={}
   for _,dev in pairs(midi.devices) do
     if dev.port~=nil then
