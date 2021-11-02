@@ -27,7 +27,7 @@ Engine_Render : CroneEngine {
 		
 		// initialize synth defs
 		SynthDef("renderInput", {
-			arg ch, bus, diskout, lpf=20000, gain=1;
+			arg ch, out, bus, diskout, lpf=20000, gain=1;
 			var snd;
 
 			snd=SoundIn.ar(ch);
@@ -40,21 +40,19 @@ Engine_Render : CroneEngine {
 		context.server.sync;
 
 		SynthDef("bass", {
-                        arg out,diskout,ch=1,note=60,amp=0,attack=0.01,decay=0.1,sustain=0.9,release=1,
-                        t_trig=1,lpf=2;
-                        var snd,env;
-                        env=EnvGen.ar(Env.adsr(attack,decay,sustain,release),gate:t_trig,doneAction:2);
-                        amp=Lag.kr(amp,2);
-                        lpf=Lag.kr(lpf,2);
-                        snd=Pulse.ar(note.midicps,width:SinOsc.kr(1/3).range(0.2,0.4));
-                        snd=snd+LPF.ar(WhiteNoise.ar(SinOsc.kr(1/rrand(3,4)).range(1,rrand(3,4))),2*note.midicps);
-                        snd = HPF.ar(snd,60);
-                        snd = LPF.ar(snd,lpf*note.midicps);
-                        snd = snd*(60/note.midicps);
+			arg out,diskout,ch=1,note=60,amp=0,attack=0.01,decay=0.1,sustain=0.9,release=1,
+			gate=1,lpf=2;
+			var snd,env;
+			env=EnvGen.ar(Env.adsr(attack,decay,sustain,release),gate:gate,doneAction:2);
+			snd=Pulse.ar(note.midicps,width:SinOsc.kr(1/3).range(0.2,0.4));
+			snd=snd+LPF.ar(WhiteNoise.ar(SinOsc.kr(1/rrand(3,4)).range(1,rrand(3,4))),2*note.midicps);
+			snd = HPF.ar(snd,60);
+			snd = LPF.ar(snd,lpf*note.midicps);
+			snd = snd*(60/note.midicps);
 			snd = snd.tanh*amp*env;                        
 			Out.ar(out, Pan2.ar(snd));
 			Out.ar(diskout, Pan2.ar(snd,2*ch-1));
-                }).add;
+        }).add;
 
 		this.addCommand("input","i",{ arg msg;
 			var i=msg[1];
@@ -71,16 +69,22 @@ Engine_Render : CroneEngine {
 		this.addCommand("bass","ffffffi",{arg msg;
 			if (renBass.isNil,{
 				renBass=Synth.head(nil,"bass",[\out,0,\diskout,renDiskBus,\amp,0]);
-			})
-			renBass.set(\t_trig,0);
+				NodeWatcher.register(renBass);
+			},{
+				if (renBass.isRunning==false,{
+					renBass=Synth.head(nil,"bass",[\out,0,\diskout,renDiskBus,\amp,0]);
+					NodeWatcher.register(renBass);
+				});
+			});
+			renBass.set(\gate,0);
 			if (msg[7]>0,{
-			renBass.set(\t_trig,1,
-				\note,msg[1],
-				\amp,msg[2],
-				\attack,msg[3],
-				\decay,msg[4],
-				\sustain,msg[5],
-				\release,msg[6]);
+				renBass.set(\gate,1,
+					\note,msg[1],
+					\amp,msg[2],
+					\attack,msg[3],
+					\decay,msg[4],
+					\sustain,msg[5],
+					\release,msg[6]);
 			});
 		});
 	
@@ -100,7 +104,7 @@ Engine_Render : CroneEngine {
 					PathName.new(pathname.standardizePath).extension,"int16",0,0,true);
 				renDiskBuf=b;
 				renDiskSyn=Synth.tail(nil,"diskout",
-					[\bufnum,renDiskBuf,\inbus,renDiskBus);
+					[\bufnum,renDiskBuf,\inbus,renDiskBus]);
 				// initiate disk syn
 			});
 		});
