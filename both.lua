@@ -22,18 +22,6 @@ function init()
     end
   end
 }
-  for i=1,2 do
-    params:add_separator("input "..i)
-    params:add_control(i.."input_lpf","lpf",controlspec.new(20,20000,'exp',0,20000,'Hz'))
-    params:set_action(i.."input_lpf",function(x)
-      engine.input_lpf(i,x,params:get(i.."input_gain"))
-    end)
-    params:add_control(i.."input_gain","gain",controlspec.new(0.5,2,'lin',0,1,'Hz'))
-    params:set_action(i.."input_gain",function(x)
-      engine.input_lpf(i,params:get(i.."input_lpf"),x)
-    end)
-  end
-
   params:add_separator("crow")
   filter_freq=controlspec.new(20,20000,'exp',0,20000,'Hz')
   params:add_control("crow_attack","attack",controlspec.new(0.005,10,'lin',0.005,0.1,'s',0.005/10))
@@ -49,10 +37,8 @@ function init()
   params:add_control("bass_decay","decay",controlspec.new(0.005,10,'lin',0.005,0.2,'s',0.005/10))
   params:add_control("bass_sustain","sustain",controlspec.new(0.005,1,'lin',0.005,0.9,'amp',0.005/1))
   params:add_control("bass_release","release",controlspec.new(0.005,10,'lin',0.005,1,'s',0.005/10))
-
   update_crow()
-
-
+  
   connect_midi()
 end
 
