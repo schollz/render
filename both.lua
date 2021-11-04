@@ -7,12 +7,12 @@ engine.name="Render"
 debounce_crow=0
 
 function init()
-  engine.input(0)
+  -- do not monitor, engine will monitor inputs
+  audio.level_monitor(0)
+
   local mxsynths_=include("mx.synths/lib/mx.synths")
   mxsynths=mxsynths_:new({save=true,previous=true,save_file="render/default.pset"})
 
-  -- do not monitor
-  audio.level_monitor(0)
   params:add_separator("recording")
   params:add{type="binary",name="record",id="record",behavior="toggle",action=function(x)
     if x==1 then
@@ -152,16 +152,14 @@ function connect_midi()
 
   -- ccs
   cclfos={}
-  cclfos["boutique"]={}
   cclfos["op-1"]={}
   -- cc lfo: cc #, period , min val, max val
-  table.insert(cclfos["boutique"],{15,10,1,120}) -- VCO PW
-  table.insert(cclfos["boutique"],{19,11.5,1,120}) -- VCO PWM level
-  table.insert(cclfos["boutique"],{21,13.5,1,120}) -- VCO sub level
-  table.insert(cclfos["boutique"],{74,21,80,110}) -- VCO sub level
-  table.insert(cclfos["op-1"],{0
-  ,13.5,1,120}) -- VCO sub level
-  --table.insert(cclfos["op-1"],{4,13.5,1,120}) -- VCO sub level
+  -- cclfos["boutique"]={}
+  -- table.insert(cclfos["boutique"],{15,10,1,120}) -- VCO PW
+  -- table.insert(cclfos["boutique"],{19,11.5,1,120}) -- VCO PWM level
+  -- table.insert(cclfos["boutique"],{21,13.5,1,120}) -- VCO sub level
+  -- table.insert(cclfos["boutique"],{74,21,80,110}) -- VCO sub level
+  table.insert(cclfos["op-1"],{0,13.5,1,120})
   clock.run(function()
     while true do
       clock.sleep(0.1)
