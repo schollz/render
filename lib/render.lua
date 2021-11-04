@@ -29,22 +29,13 @@ end
 
 function record_start(both)
   os.execute("mkdir -p ".._path.audio.."render")
-  recording_filename=_path.audio.."render/"..os.date("%Y%m%d-%H%m%S").."_0.wav"
-  print("recording "..recording_filename)
-  engine.record_start(recording_filename,0)
-  if both==true then 
-    recording_filename=_path.audio.."render/"..os.date("%Y%m%d-%H%m%S").."_1.wav"
-    print("recording "..recording_filename)
-    engine.record_start(recording_filename,1)
-  end
+  recording_filename=_path.audio.."render/"..os.date("%Y%m%d-%H%m%S")
+  engine.record_start(recording_filename)
 end
 
 function record_stop(both)
   print("stopped recording "..recording_filename)
-  engine.record_stop(0)
-  if both==true then 
-    engine.record_stop(1)
-  end
+  engine.record_stop()
 end
 
 function lfo(period,dlo,dhi)
