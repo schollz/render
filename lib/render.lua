@@ -4,6 +4,15 @@
 function setup_params()
   -- do not monitor
   audio.level_monitor(0)
+  params:add_separator("recording")
+  params:add{type="binary",name="record",id="record",behavior="toggle",action=function(x)
+    if x==1 then
+      record_start()
+    else
+      record_stop()
+    end
+  end
+}
   for i=1,2 do
     params:add_separator("input "..i)
     params:add_control(i.."input_lpf","lpf",controlspec.new(20,20000,'exp',0,20000,'Hz'))
@@ -15,15 +24,6 @@ function setup_params()
       engine.input_lpf(i,params:get(i.."input_lpf"),x)
     end)
   end
-  params:add_separator("recording")
-  params:add{type="binary",name="record",id="record",behavior="toggle",action=function(x)
-    if x==1 then
-      record_start()
-    else
-      record_stop()
-    end
-  end
-}
 end
 
 
