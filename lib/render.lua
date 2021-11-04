@@ -1,15 +1,15 @@
 -- shared render utilities
 
 
-function setup_params()
+function setup_params(both)
   -- do not monitor
   audio.level_monitor(0)
   params:add_separator("recording")
   params:add{type="binary",name="record",id="record",behavior="toggle",action=function(x)
     if x==1 then
-      record_start()
+      record_start(both)
     else
-      record_stop()
+      record_stop(both)
     end
   end
 }
@@ -27,16 +27,24 @@ function setup_params()
 end
 
 
-function record_start()
+function record_start(both)
   os.execute("mkdir -p ".._path.audio.."render")
-  recording_filename=_path.audio.."render/"..os.date("%Y%m%d-%H%m%S")..".wav"
+  recording_filename=_path.audio.."render/"..os.date("%Y%m%d-%H%m%S").."_0.wav"
   print("recording "..recording_filename)
-  engine.record_start(fname)
+  engine.record_start(recording_filename,0)
+  if both==true then 
+    recording_filename=_path.audio.."render/"..os.date("%Y%m%d-%H%m%S").."_1.wav"
+    print("recording "..recording_filename)
+    engine.record_start(recording_filename,1)
+  end
 end
 
-function record_stop()
+function record_stop(both)
   print("stopped recording "..recording_filename)
-  engine.record_stop()
+  engine.record_stop(0)
+  if both==true then 
+    engine.record_stop(1)
+  end
 end
 
 function lfo(period,dlo,dhi)

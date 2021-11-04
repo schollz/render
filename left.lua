@@ -7,8 +7,10 @@ debounce_crow=0
 
 function init()
   engine.input(0)
+  local mxsynths_=include("mx.synths/lib/mx.synths")
+  mxsynths=mxsynths_:new({save=true,previous=true,save_file="render/default.pset"})
 
-  setup_params()
+  setup_params(true)
 
   params:add_separator("crow")
   filter_freq=controlspec.new(20,20000,'exp',0,20000,'Hz')
@@ -31,6 +33,8 @@ function init()
 
   connect_midi()
 end
+
+
 
 local bass_velocity={1,3,5,8,10,12,14,17,19,21,23,26,28,30,32,34,37,39,41,43,45,47,49,51,53,55,57,59,61,63,65,67,68,70,72,74,75,77,79,80,82,83,85,86,88,89,91,92,93,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,111,112,113,114,114,115,116,116,117,117,118,118,119,119,120,120,121,121,121,122,122,122,123,123,123,124,124,124,124,125,125,125,125,125,125,126,126,126,126,126,126,126,126,126,126,126,126,127,127,127,127,127,127,127,127,127,127,127,127,127,127,127}
 
@@ -99,9 +103,11 @@ function connect_midi()
   -- pad
   routing[8]=function(on,note,vel)
     if on then
-      md["boutique"].conn:note_on(note,vel)
+      mxsynths:note_on(note,0.5,4)
+      -- md["boutique"].conn:note_on(note,vel)
     else
-      md["boutique"].conn:note_off(note)
+      mxsynths:note_off(note)
+      -- md["boutique"].conn:note_off(note)
     end
   end
   md["op-z"].conn.event=function(data)
