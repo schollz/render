@@ -11,7 +11,7 @@ function init()
   audio.level_monitor(0)
 
   local mxsynths_=include("mx.synths/lib/mx.synths")
-  mxsynths=mxsynths_:new({save=true,previous=true,save_file="render/default.pset"})
+  mxsynths=mxsynths_:new({save=true,previous=true,save_file="render/default.pset",engine_name="Render"})
 
   params:add_separator("recording")
   params:add{type="binary",name="record",id="record",behavior="toggle",action=function(x)
@@ -33,6 +33,7 @@ function init()
   end
   params:add_separator("bass")
   filter_freq=controlspec.new(20,20000,'exp',0,20000,'Hz')
+  params:add_control("bass_amp","amp",controlspec.new(0.1,10,'lin',0.1,0.5,'amp',0.1/10))
   params:add_control("bass_attack","attack",controlspec.new(0.005,10,'lin',0.005,0.01,'s',0.005/10))
   params:add_control("bass_decay","decay",controlspec.new(0.005,10,'lin',0.005,0.2,'s',0.005/10))
   params:add_control("bass_sustain","sustain",controlspec.new(0.005,1,'lin',0.005,0.9,'amp',0.005/1))
@@ -44,13 +45,17 @@ end
 
 
 
-function record_start(both)
+function record_start()
   os.execute("mkdir -p ".._path.audio.."render")
   recording_filename=_path.audio.."render/"..os.date("%Y%m%d-%H%m%S")
+  print("started recording "..recording_filename)
   engine.record_start(recording_filename)
 end
 
-function record_stop(both)
+function record_stop()
+  if recording_filename==nil then 
+    do return end 
+  end
   print("stopped recording "..recording_filename)
   engine.record_stop()
 end
@@ -71,7 +76,7 @@ function play_bass(on,note,velocity)
   if not on then
     gate=0
   end
-  engine.bass(note,bass_velocity[velocity+1]/127,
+  engine.bass(note,params:get("bass_amp"),
     params:get("bass_attack"),
     params:get("bass_decay"),
     params:get("bass_sustain"),

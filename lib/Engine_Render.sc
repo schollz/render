@@ -3,9 +3,9 @@
 // beautifully succinct FM synth: https://sccode.org/1-5bA
 Engine_Render : CroneEngine {
 	// <Render>
-	var renDiskBus=Array.newClear(3);
-	var renDiskSyn=Array.newClear(3);
-	var renDiskBuf=Array.newClear(3);
+	var renDiskBus;
+	var renDiskSyn;
+	var renDiskBuf;
 	var renInput;
 	var renBass;
 	// </Render>
@@ -102,6 +102,7 @@ Engine_Render : CroneEngine {
 			}!2);
 			snd = Balance2.ar(snd[0],snd[1],Lag.kr(pan,0.1));
 			Out.ar(out,snd*env*amp/8);
+			Out.ar(diskout,snd*env*amp/8);
 		}).add;
 
 		SynthDef("casio",{
@@ -127,6 +128,7 @@ Engine_Render : CroneEngine {
 			snd = LPF.ar(snd,Clip.kr(hz*artifacts,20,18000));
 			snd = Pan2.ar(snd,Lag.kr(pan,0.1));
 			Out.ar(out,snd*env*amp/5);
+			Out.ar(diskout,snd*env*amp/5);
 		}).add;
 
 		SynthDef("icarus",{
@@ -187,6 +189,7 @@ Engine_Render : CroneEngine {
 			env=EnvGen.ar(Env.adsr(attack,decay,sustain,release),(gate-EnvGen.kr(Env.new([0,0,1],[duration,0]))),doneAction:2);
 
 			Out.ar(out,snd*env*amp/8);
+			Out.ar(diskout,snd*env*amp/8);
 		}).add;
 
 		// port of STK's Rhodey (yamaha DX7-style Fender Rhodes) https://sccode.org/1-522
@@ -226,6 +229,7 @@ Engine_Render : CroneEngine {
 
 			snd = Pan2.ar(snd,Lag.kr(pan,0.1));
 			Out.ar(out,snd*env*amp/8);
+			Out.ar(diskout,snd*env*amp/8);
 		}).add;
 
 
@@ -255,6 +259,7 @@ Engine_Render : CroneEngine {
 			snd=snd+(Amplitude.kr(snd)*VarLag.kr(LFNoise0.kr(1),1,warp:\sine).range(0.1,1.0)*klankyvol*Klank.ar(`[[hz, hz*2+2, hz*4+5, hz*8+2], nil, [1, 1, 1, 1]], PinkNoise.ar([0.007, 0.007])));
 			snd = Balance2.ar(snd[0],snd[1],Lag.kr(pan,0.1));
 			Out.ar(out,snd*env*amp/8);
+			Out.ar(diskout,snd*env*amp/8);
 		}).add;
 
 		SynthDef("malone",{
@@ -586,7 +591,7 @@ Engine_Render : CroneEngine {
 			// ("sub at "++(sub*mxParameters.at("sub"))).postln;
 
 			mxVoices.put(note,
-				Synth.before(mxSynthFX,mxParameters.at("synth"),[
+				Synth.head(nil,mxParameters.at("synth"),[
 					\diskout,renDiskBus[1],
 					\amp,amp*mxParameters.at("amp"),
 					\out,mxBusFx,
@@ -836,6 +841,8 @@ Engine_Render : CroneEngine {
 		// </mx>
 
 		// <Render>
+		renDiskSyn=Array.newClear(3);
+		renDiskBuf=Array.newClear(3);
 		renDiskBus = Array.fill(3,{Bus.audio(context.server,2)});
 
 		SynthDef("diskout", { arg bufnum=0, inbus=0;
@@ -845,7 +852,7 @@ Engine_Render : CroneEngine {
 		// renderInput expects two mono signals in right and left channels
 		SynthDef("renderInput", {
 			arg out, diskout;
-			var snd=SoundIn.ar(2);
+			var snd=SoundIn.ar([0,1]);
 			Out.ar(out, Pan2.ar(snd[0])+Pan2.ar(snd[1]));
 			Out.ar(diskout, snd);
 		}).add;
@@ -857,9 +864,10 @@ Engine_Render : CroneEngine {
 			arg out,diskout,ch=1,note=60,amp=0,attack=0.01,decay=0.1,sustain=0.9,release=1,
 			gate=1,lpf=2;
 			var snd,env;
+			note=Lag.kr(note,0.05);
 			env=EnvGen.ar(Env.adsr(attack,decay,sustain,release),gate:gate,doneAction:2);
 			snd=Pulse.ar(note.midicps,width:SinOsc.kr(1/3).range(0.2,0.4));
-			snd=snd+LPF.ar(WhiteNoise.ar(SinOsc.kr(1/rrand(3,4)).range(1,rrand(3,4))),2*note.midicps);
+			snd=snd+(LPF.ar(WhiteNoise.ar(SinOsc.kr(1/rrand(3,4)).range(1,rrand(3,4))),2*note.midicps));
 			snd = HPF.ar(snd,60);
 			snd = LPF.ar(snd,lpf*note.midicps);
 			snd = snd*(60/note.midicps);
@@ -893,25 +901,21 @@ Engine_Render : CroneEngine {
 	
 		this.addCommand("record_stop","",{ arg msg;
 			(0..2).do({arg i;
-				if (renDiskSyn[i]!=nil,{
-					renDiskSyn[i].free;
-					renDiskBuf[i].free;
-				});
+				renDiskSyn[i].free;
+				renDiskBuf[i].free;
 			});
 		});
 
 		this.addCommand("record_start","s",{ arg msg;
 			(0..2).do({arg i;
-				if (renDiskSyn[i]==nil,{
-					var b=Buffer.alloc(context.server,65536,2);
-					var pathname=msg[1].asString++"_"++i++".wav";
-					("allocating buffer for to "++pathname).postln;
-					b.write(pathname.standardizePath,
-						PathName.new(pathname.standardizePath).extension,"int16",0,0,true);
-					renDiskBuf[i]=b;
-					renDiskSyn[i]=Synth.tail(nil,"diskout",
-						[\bufnum,renDiskBuf[i],\inbus,renDiskBus[i]]);
-				});
+				var b=Buffer.alloc(context.server,65536,2);
+				var pathname=msg[1].asString++"_"++i++".wav";
+				("allocating buffer for to "++pathname).postln;
+				b.write(pathname.standardizePath,
+					PathName.new(pathname.standardizePath).extension,"int16",0,0,true);
+				renDiskBuf[i]=b;
+				renDiskSyn[i]=Synth.tail(nil,"diskout",
+					[\bufnum,renDiskBuf[i],\inbus,renDiskBus[i]]);
 			});
 		});	
 		// </Render>
@@ -924,6 +928,7 @@ Engine_Render : CroneEngine {
 		renDiskSyn.do({ arg value,i; value.free; });
 		renDiskBuf.do({ arg value,i; value.free; });
 		renInput.free;
+		renBass.free;
 		// </Render>
 		// <mx>
 		mxBusFx.free;
